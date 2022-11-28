@@ -17,6 +17,7 @@
 package com.google.ar.core.examples.java.helloar;
 
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.res.Resources;
 import android.media.Image;
 import android.opengl.GLES30;
@@ -27,6 +28,7 @@ import android.util.Log;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.PopupMenu;
 import android.widget.Toast;
@@ -81,6 +83,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 
 /**
  * This is a simple example that shows how to create an augmented reality (AR) application using the
@@ -88,6 +91,12 @@ import java.util.List;
  * plane to place a 3D model.
  */
 public class HelloArActivity extends AppCompatActivity implements SampleRender.Renderer {
+
+  String texturename;
+  String virtualObjectTextureDir;
+  Random rng;
+  Integer randomNum;
+
 
   private static final String TAG = HelloArActivity.class.getSimpleName();
 
@@ -176,6 +185,11 @@ public class HelloArActivity extends AppCompatActivity implements SampleRender.R
   private final float[] worldLightDirection = {0.0f, 0.0f, 0.0f, 0.0f};
   private final float[] viewLightDirection = new float[4]; // view x world light direction
 
+
+
+
+
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -191,7 +205,13 @@ public class HelloArActivity extends AppCompatActivity implements SampleRender.R
     render = new SampleRender(surfaceView, this, getAssets());
 
     installRequested = false;
-
+    Button rollingButton = findViewById(R.id.buttonroll);
+    Intent intent = new Intent(this, HelloArActivity.class);
+    rollingButton.setOnClickListener(new View.OnClickListener(){
+      @Override
+      public void onClick (View view){
+        startActivity(intent);
+      }});
     depthSettings.onCreate(this);
     instantPlacementSettings.onCreate(this);
     ImageButton settingsButton = findViewById(R.id.settings_button);
@@ -206,6 +226,14 @@ public class HelloArActivity extends AppCompatActivity implements SampleRender.R
           }
         });
   }
+
+  public void rollDice() {
+    randomNum = rng.nextInt(20) + 1;
+    virtualObjectTextureDir = getString(R.string.picName, randomNum);
+  }
+
+
+
 
   /** Menu button to launch feature specific settings. */
   protected boolean settingsMenuClick(MenuItem item) {
@@ -337,10 +365,12 @@ public class HelloArActivity extends AppCompatActivity implements SampleRender.R
     FullScreenHelper.setFullScreenOnWindowFocusChanged(this, hasFocus);
   }
 
-  @Override
+
+    @Override
   public void onSurfaceCreated(SampleRender render) {
     // Prepare the rendering objects. This involves reading shaders and 3D model files, so may throw
     // an IOException.
+      rollDice();
     try {
       planeRenderer = new PlaneRenderer(render);
       backgroundRenderer = new BackgroundRenderer(render);
@@ -400,23 +430,23 @@ public class HelloArActivity extends AppCompatActivity implements SampleRender.R
       virtualObjectAlbedoTexture =
           Texture.createFromAsset(
               render,
-              "models/pawn_albedo.png",
+              virtualObjectTextureDir,
               Texture.WrapMode.CLAMP_TO_EDGE,
               Texture.ColorFormat.SRGB);
       virtualObjectAlbedoInstantPlacementTexture =
           Texture.createFromAsset(
               render,
-              "models/pawn_albedo_instant_placement.png",
+              virtualObjectTextureDir,
               Texture.WrapMode.CLAMP_TO_EDGE,
               Texture.ColorFormat.SRGB);
       Texture virtualObjectPbrTexture =
           Texture.createFromAsset(
               render,
-              "models/pawn_roughness_metallic_ao.png",
+              "models/D20-highrez-texture-metallic-map.png",
               Texture.WrapMode.CLAMP_TO_EDGE,
               Texture.ColorFormat.LINEAR);
 
-      virtualObjectMesh = Mesh.createFromAsset(render, "models/pawn.obj");
+      virtualObjectMesh = Mesh.createFromAsset(render, "models/DiceCorrectRotation.obj");
       virtualObjectShader =
           Shader.createFromAssets(
                   render,
@@ -640,7 +670,7 @@ public class HelloArActivity extends AppCompatActivity implements SampleRender.R
             || (trackable instanceof DepthPoint)) {
           // Cap the number of objects created. This avoids overloading both the
           // rendering system and ARCore.
-          if (wrappedAnchors.size() >= 20) {
+          if (wrappedAnchors.size() >= 1) {
             wrappedAnchors.get(0).getAnchor().detach();
             wrappedAnchors.remove(0);
           }
